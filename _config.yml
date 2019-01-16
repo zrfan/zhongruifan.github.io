@@ -12,7 +12,7 @@ github_repo: "https://github.com/zrfan/zrfan.github.io.git" # you code repositor
 # Sidebar settings
 sidebar: true                           # whether or not using Sidebar.
 sidebar-about-description: "Goal determines what you are going to be! 公众号：step in 机器学习"
-sidebar-avatar: /img/IMG_1841.jpg      # use absolute URL, seeing it's used in both `/` and `/about/`
+sidebar-avatar: /img/IMG_1841.JPG     # use absolute URL, seeing it's used in both `/` and `/about/`
 
 
 
