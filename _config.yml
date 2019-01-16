@@ -19,7 +19,7 @@ sidebar-avatar: /img/IMG_1825.JPG    # use absolute URL, seeing it's used in bot
 # SNS settings
 RSS: false
 # weibo_username:     fr
-zhihu_username:     https://www.zhihu.com/people/nian-shou-84-18/activities
+zhihu_username:     nian-shou-84-18/activities
 github_username:    zrfan
 #facebook_username:  fr
 #jianshu_username:   fr
