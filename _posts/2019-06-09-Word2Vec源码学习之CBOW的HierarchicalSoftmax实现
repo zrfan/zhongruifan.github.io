@@ -1,0 +1,88 @@
+预备知识：
+- ReadWord()
+训练预料每个句子一行，ReadWord()逐个对输入流读字符
+对换行符特判，第一次遇到换行符，会把换行符退流。
+这样下一次单独遇到换行符，此时a=0,直接生成结尾符单词&lt;/s&gt;，这个词在hash表中处于0号位置
+只要hash到0，说明一个句子处理完了，跳过这个词，进入下一个句子
+
+- Hash表
+为了执行速度，Word2vec放弃了C++，不能用Map做hash，因而手写了hash表进行词hash。使用线性探测，默认Hash数组30M。
+AddWordToVocab()会根据情况自动扩展空间
+亚系字符，编码默认使用UTF8，也可以被Hash，但是需要分词
+- 排序与词剪枝
+由于构建Huffman树的需要，做好Vocab库之后，要对Hash表按词频从大到小排序。
+并剔除低频词（min_count=5），重新调整Hash表空间
+除此之外，在从文件创建Vocab的时候，会自动用ReduceVocab（）剪枝
+当VocabSize达到Hash表70%容量时，先剪掉频率1的全部词。然后下次再负荷，则对频率2下手。
+- Huffman树
+在Hierarchical Softmax优化方法中使用
+直接计算Softmax函数不现实，$P(W_{t} | W_{t-N},..,W_{t-1},W_{t+1},..,W_{t+N})=e^{W_{t}X+b_{t}} / \sum_{i=1}^{\gamma} e^{W_{i}X+b_{i}}$
+底部的归一化因子直接关系到Vocab大小，有10^5，每算一个概率都要计算10^5次矩阵乘法，不现实。
+Hierarchical Softmax是把Softmax的过程做成一颗二叉树，从根节点到叶子节点，在每个节点上计算一次概率，最坏要跑$O(logV)$次矩阵乘法
+至于为什么使用Huffman树优化，有两点：
+1.Huffman树是最优二叉树，从BST角度来看，平衡性最好
+2.Huffman树可以构成优先队列，对非随机访问（即高频词经常被访问）往往奇效
+这样按照词频降序建立Huffman树，保证了高频词接近Root，高频词需要的计算步骤较少，低频词较多，贪心优化的思想
+Word2vec的构建代码非常巧妙，利用数组下标的移动就完成了构建和编码
+主要是用parent_node这个数组来标记生成的Parent节点（范围是$[VocabSize, VocabSize * 2-2]$）
+最后对Parent节点减去VocabSize，得到从0开始的Point路径数组。
+- 网络参数、初始化
+syn0数组存着Vocab的全部词向量，大小$|V| * |M|$,初始化范围[$-0.5/M$， $0.5/M$]，经验规则
+syn1数组存着Hierarchical Softmax的参数，大小$|V| * |M|$,初始化全为0，经验规则。实际使用|V-1|组
+syn1neg数组存着Negative Sampling的参数，大小|V| * |M|, 初始化全为0，经验规则
+#### Word2Vec: CBOW（Continous Bag of Word）模型
+- One-Hot Represention With BOWOne-Hot 
+Represention中，如果一个句子出现相同的词，那么只用0/1编码明显不准确。词袋模型（BOW），允许将重复的词叠加，就像把重复的词装进一个袋子一样，以此来增加句子的可信度它基于朴素贝叶斯的独立性假设，将不同位置出现的相同词，看作是等价的，不考虑语义、语法和关联性
+- Distributed Represetion with CBOW
+Bengio的模型中，为了让词向量得到词序信息，输入层对N-gram的N个词进行拼接，增加了计算压力。CBOW中取消了训练词序信息，将N个词各个维度求和，并且取平均，构成一个新的平均词向量$W_{\tilde{x}}$。同时，为了得到更好的语义、语法信息，采用窗口扫描上下文法，即预测第i个词，不仅和前N个词有关，还和后N个词有关![746cb46e99aa2aa29bcb21079be76d3b.png](evernotecid://27979160-78CB-4009-B27A-F7983E08C95A/appyinxiangcom/10332242/ENNote/p480?hash=746cb46e99aa2aa29bcb21079be76d3b)
+对于单个句子，需要优化的目标函数：
+$arg max_{VecandW} 1/T \sum_{t=1}^{T}logP(W_{t} | W_{\tilde{x}})$
+T为滑动窗口数
+- Hierarchical Softmax近似优化求解$P(W_{obj} | W_{\tilde{x}})$
+传统的Softmax可以看成是一个线性表，平均查找时间O(n)HS方法将Softmax做成一颗平衡的满二叉树，维护词频后，变成Huffman树![57764b5f5a6b672f448a4e599ccb8ccc.png](evernotecid://27979160-78CB-4009-B27A-F7983E08C95A/appyinxiangcom/10332242/ENNote/p480?hash=57764b5f5a6b672f448a4e599ccb8ccc)
+这样，原本的Softmax问题，退化成了近似log(K)个Logistic回归组合成决策树。Softmax的K组$\theta$，现在变成了K-1组，代表着二叉树的K-1个非叶节点。
+在Word2Vec中，由syn1数组存放，范围[0 * layerSize ~ (vocabSize-2) * layerSize]。因为Huffman树是倒着编码的，所以数组尾正好是树的头如：syn1数组中，syn1[(vocabSize-2)* layerSize]就是root的参数$\theta$。
+（为什么-2，因为下标从0开始）Word2Vec规定，每次Logistic回归，label=1-HuffmanCode，label和编码是正好相反的。比如要利用$W_{\tilde{x}}$预测love这个词，从Root到love这个词的路径上，有三个节点（Node 1、2、3），两个编码01.（Node指的是Huffman编码，后面sigmoid算出的是标签，所以和Logistic回归正好相反）那么：
+step1：$P(Node_{2}=0|W_{\tilde{x}}, \theta_{1}) = \sigma(\theta_{1}W_{\tilde{x}})$step2: $P(Node_{3}=1|W_{\tilde{x}}, \theta_{2})=1- \sigma(\theta_{2}W_{\tilde{x}})$
+则$P(W_{love}|W_{\tilde{x}})=P(Node_{2}=0|W_{\tilde{x}}, \theta_{1}) * P(Node_{3}=1|W_{\tilde{x}}, \theta_{2})$
+将每个Node写成完整的判别模型概率式：
+$P(Node|W_{\tilde{x}},\theta)=\sigma(\theta W_{\tilde{x}})^{1-y}* (1-\sigma(\theta W_{\tilde{x}}))$
+将路径上所有Node连锁起来，得到概率积：
+$P(W_{obj}|W_{\tilde{x}}) = \prod_{i=0}^{len(Code)-1} \sigma(\theta_{i} W_{\tilde{x}})^{1-y} * (1-\sigma(\theta_{i} W_{\tilde{x}})^y$， 
+$y \propto {0, 1}$ and $y=HuffmanCode$
+
+Word2Vec 中vocab_word结构体有两个数组变量负责这部分
+int * point ---- Node
+char * node ---- HuffmanCode
+其中，vocab[word].code[d]指的是，当前单词wordd ,第d个编码，编码不含root节点
+vocab[word].point[d]指的是，当前单词word，第d个编码下的前置节点
+比如，vocab[word].point[0]肯定是Root节点，而vocab[word].code[0]肯定是root节点走到下一个节点的编码
+正好错开了，这样就可以一步计算出$P(Node|W_{\tilde{x}}, \theta) = \sigma(\theta W_{\tilde{x}})^{1-y} * (1-\sigma(\theta W_{\tilde{x}}))^{y}$
+这种避免回溯搜索对应路径的预处理trick在CreateBinaryTree()函数中实现。
+##### Hierarchical Softmax的随机梯度更新
+判别模型$P(W_{obj}|W_{\tilde{x}})$需要更新的是$W_{\tilde{x}}$，因为$W_{\tilde{x}}$是个平均项
+源码中的做法是对于原始SUM的全部输入，逐一且统一更新$W_{\tilde{x}}$的梯度项。（注意这种近似也许不是一个好的近似）
+先对目标函数取对数：
+$\zeta = 1/T \sum_{t=1}^{T} \sum_{i=0}^{len(Code)-1} (1-y) * log[ \sigma(\theta_{i} W_{\tilde{x}})] + y * log[ 1- \sigma(\theta_{i} W_{\tilde{x}})]$
+Word2Vec中没有去实现麻烦的批梯度更新，而是对于每移动到一个中心词t，就更新一下，单样本目标函数：
+$\zeta' = \sum_{i=0}^{len(Code)-1} (1-y) * log[\sigma(\theta_{i} W_{\tilde{x}})] + y* log[1-\sigma(\theta_{i} W_{\tilde{x}})]$
+对$W_{\tilde{x}}$的梯度：
+$\frac{\partial \zeta'}{ \partial W_{\tilde{x}}} = \sum_{i=0}^{len(Code)-1} \frac{\partial[ (1-y)* log[\sigma(\theta_{i}W_{\tilde{x}})] + y* log[1-\sigma(\theta_{i}W_{\tilde{x}})] ] } { \partial W_{\tilde{x}}}$
+
+$=\sum_{i=0}^{len(Code)-1} (1-y)* \theta_{i}* [(1-\sigma(\theta_{i}W_{\tilde{x}}))] - y*\theta_{i}* \sigma(\theta_{i}W_{\tilde{x}})$
+
+$=\sum_{i=0}^{len(Code)-1}(1-y-\sigma(\theta_{i}W_{\tilde{x}}))* \theta_{i}$
+对$\theta_{i}$的梯度，和上面有点对称，只不过没有$\sum$了，所以源码里，每经过一个Node，就更新：
+$\frac{\partial \zeta'}{\partial \theta_{i}}=(1-y-\sigma(\theta_{i}W_{\tilde{x}}))* W_{\tilde{x}}$
+
+更新流程：
+update CBOW_HierarchicalSoftmax(Wt)
+neule = 0
+$W_{\tilde{x}} \leftarrow SumThenAvg(W_{t-c},...,W_{t-1}, W_{t+1},...,W_{t+c})$
+for i=0 to len($W_{t}.code-1$)
+    $f = \sigma(W_{\tilde{x}}\theta_{i})$
+    $g = (1-code -f) * learningRate$
+    $neule = neule + g*\theta_{i}$
+    $\theta_{i}=\theta_{i} + g* W_{\tilde{x}}$
+for W in ($W_{t-c},...,W_{t-1},W{t+1},...,W{t+c}):
+    W=W+neule
