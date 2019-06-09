@@ -48,12 +48,16 @@ syn1neg数组存着Negative Sampling的参数，大小|V| * |M|, 初始化全为
 - One-Hot Represention With BOWOne-Hot 
 Represention中，如果一个句子出现相同的词，那么只用0/1编码明显不准确。词袋模型（BOW），允许将重复的词叠加，就像把重复的词装进一个袋子一样，以此来增加句子的可信度它基于朴素贝叶斯的独立性假设，将不同位置出现的相同词，看作是等价的，不考虑语义、语法和关联性
 - Distributed Represetion with CBOW
-Bengio的模型中，为了让词向量得到词序信息，输入层对N-gram的N个词进行拼接，增加了计算压力。CBOW中取消了训练词序信息，将N个词各个维度求和，并且取平均，构成一个新的平均词向量$W_{\tilde{x}}$。同时，为了得到更好的语义、语法信息，采用窗口扫描上下文法，即预测第i个词，不仅和前N个词有关，还和后N个词有关![746cb46e99aa2aa29bcb21079be76d3b.png](evernotecid://27979160-78CB-4009-B27A-F7983E08C95A/appyinxiangcom/10332242/ENNote/p480?hash=746cb46e99aa2aa29bcb21079be76d3b)
+Bengio的模型中，为了让词向量得到词序信息，输入层对N-gram的N个词进行拼接，增加了计算压力。CBOW中取消了训练词序信息，将N个词各个维度求和，并且取平均，构成一个新的平均词向量$W_{\tilde{x}}$。同时，为了得到更好的语义、语法信息，采用窗口扫描上下文法，即预测第i个词，不仅和前N个词有关，还和后N个词有关
+![img/2019-06-09/cbowModel.png](https://zrfan.github.io/img/2019-06-09/cbowModel.png)
+
 对于单个句子，需要优化的目标函数：
 $arg max_{VecandW} 1/T \sum_{t=1}^{T}logP(W_{t} | W_{\tilde{x}})$
 T为滑动窗口数
 - Hierarchical Softmax近似优化求解$P(W_{obj} | W_{\tilde{x}})$
-传统的Softmax可以看成是一个线性表，平均查找时间O(n)HS方法将Softmax做成一颗平衡的满二叉树，维护词频后，变成Huffman树![57764b5f5a6b672f448a4e599ccb8ccc.png](evernotecid://27979160-78CB-4009-B27A-F7983E08C95A/appyinxiangcom/10332242/ENNote/p480?hash=57764b5f5a6b672f448a4e599ccb8ccc)
+传统的Softmax可以看成是一个线性表，平均查找时间O(n)HS方法将Softmax做成一颗平衡的满二叉树，维护词频后，变成Huffman树
+![img/2019-06-09/huffmanTree.png](https://zrfan.github.io/img/2019-06-09/huffmanTree.png)
+
 这样，原本的Softmax问题，退化成了近似log(K)个Logistic回归组合成决策树。Softmax的K组$\theta$，现在变成了K-1组，代表着二叉树的K-1个非叶节点。
 在Word2Vec中，由syn1数组存放，范围[0 * layerSize ~ (vocabSize-2) * layerSize]。因为Huffman树是倒着编码的，所以数组尾正好是树的头如：syn1数组中，syn1[(vocabSize-2)* layerSize]就是root的参数$\theta$。
 （为什么-2，因为下标从0开始）Word2Vec规定，每次Logistic回归，label=1-HuffmanCode，label和编码是正好相反的。比如要利用$W_{\tilde{x}}$预测love这个词，从Root到love这个词的路径上，有三个节点（Node 1、2、3），两个编码01.（Node指的是Huffman编码，后面sigmoid算出的是标签，所以和Logistic回归正好相反）那么：
