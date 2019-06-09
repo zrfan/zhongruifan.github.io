@@ -1,7 +1,7 @@
 ---
 layout:     post
-title:      Word2Vec源码学习之CBOW的HierarchicalSoftmax实现
-subtitle:   Word2Vec源码学习之CBOW的HierarchicalSoftmax实现
+title:      Word2Vec源码学习
+subtitle:   CBOW的HierarchicalSoftmax实现
 date:       2019-06-09
 author:     fzr
 header-img: 
@@ -12,6 +12,7 @@ tags:
 ---
 
 # Word2Vec源码学习之CBOW的HierarchicalSoftmax实现
+
 预备知识：
 - ReadWord()
 训练预料每个句子一行，ReadWord()逐个对输入流读字符
@@ -44,6 +45,7 @@ Word2vec的构建代码非常巧妙，利用数组下标的移动就完成了构
 syn0数组存着Vocab的全部词向量，大小$|V| * |M|$,初始化范围[$-0.5/M$， $0.5/M$]，经验规则
 syn1数组存着Hierarchical Softmax的参数，大小$|V| * |M|$,初始化全为0，经验规则。实际使用|V-1|组
 syn1neg数组存着Negative Sampling的参数，大小|V| * |M|, 初始化全为0，经验规则
+
 #### Word2Vec: CBOW（Continous Bag of Word）模型
 - One-Hot Represention With BOWOne-Hot 
 Represention中，如果一个句子出现相同的词，那么只用0/1编码明显不准确。词袋模型（BOW），允许将重复的词叠加，就像把重复的词装进一个袋子一样，以此来增加句子的可信度它基于朴素贝叶斯的独立性假设，将不同位置出现的相同词，看作是等价的，不考虑语义、语法和关联性
@@ -77,6 +79,7 @@ vocab[word].point[d]指的是，当前单词word，第d个编码下的前置节�
 比如，vocab[word].point[0]肯定是Root节点，而vocab[word].code[0]肯定是root节点走到下一个节点的编码
 正好错开了，这样就可以一步计算出$P(Node|W_{\tilde{x}}, \theta) = \sigma(\theta W_{\tilde{x}})^{1-y} * (1-\sigma(\theta W_{\tilde{x}}))^{y}$
 这种避免回溯搜索对应路径的预处理trick在CreateBinaryTree()函数中实现。
+
 ##### Hierarchical Softmax的随机梯度更新
 判别模型$P(W_{obj}|W_{\tilde{x}})$需要更新的是$W_{\tilde{x}}$，因为$W_{\tilde{x}}$是个平均项
 源码中的做法是对于原始SUM的全部输入，逐一且统一更新$W_{\tilde{x}}$的梯度项。（注意这种近似也许不是一个好的近似）
