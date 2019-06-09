@@ -1,3 +1,16 @@
+---
+layout:     post
+title:      Word2Vec源码学习之CBOW的HierarchicalSoftmax实现
+subtitle:   Word2Vec源码学习之CBOW的HierarchicalSoftmax实现
+date:       2019-06-09
+author:     fzr
+header-img: 
+catalog: true
+tags:
+    - DL
+    - NLP
+---
+## Word2Vec源码学习之CBOW的HierarchicalSoftmax实现
 预备知识：
 - ReadWord()
 训练预料每个句子一行，ReadWord()逐个对输入流读字符
