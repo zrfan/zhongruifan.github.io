@@ -1,18 +1,26 @@
 Spark on Angel同时支持yarn和local两种运行模型，从而方便用户在本地调试程序。
 spark on Angel本质上是一个spark的application，但是多了一个附属的application。在任务提交成功后，集群上会出现两个独立的application，一个是spark application，一个是angel-PS application，两个application不关联，一个spark on Angel的作业删除，需要用户或者外部系统同时kill两个。
+
 ### Sona部署流程
+
 #### 安装spark
 - 参考spark安装
+
 #### 安装sona
+
 ##### 编译sona
+
 ```
 编译环境依赖
 * Jdk >= 1.8
 * Maven >= 3.0.5
 * Protobuf >= 2.5.0 需要和hadoop环境自带的protobuf版本保持一致。目前hadoop官方发布包使用的是2.5.0版本，所以推荐使用2.5.0版本，除非你自己使用更新的protobuf版本编译了hadoop。
 ```
+
 - 1. git clone https://github.com/Angel-ML/sona.git
+
 - 2. 编译：进入源码根目录
+
 ```
 mvn clean package -Dmaven.test.skip=true
 ```
