@@ -14,8 +14,7 @@ tags:
 ---
 
 # Facebook Embedding召回总结
-本文为原创文章，首发地址为[Facebook Embedding召回总结 - 一块小蛋糕的文章 - 知乎]
-(https://zhuanlan.zhihu.com/p/222860582)
+本文为原创文章，首发地址为[Facebook Embedding召回总结 - 一块小蛋糕的文章 - 知乎](https://zhuanlan.zhihu.com/p/222860582)
 ![img/2020-09-07/facebook_1.png](https://zrfan.github.io/img/2020-09-07/facebook_1.png)
 ![img/2020-09-07/facebook_2.png](https://zrfan.github.io/img/2020-09-07/facebook_2.png)
 ![img/2020-09-07/facebook_3.png](https://zrfan.github.io/img/2020-09-07/facebook_3.png)
