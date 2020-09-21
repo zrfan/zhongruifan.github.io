@@ -1,7 +1,7 @@
 ---
 layout:     post
 title:      Spark on angel 学习
-subtitle:   sona学习
+subtitle:   分布式机器学习系统sona
 date:       2019-12-12
 author:     fzr
 header-img:
