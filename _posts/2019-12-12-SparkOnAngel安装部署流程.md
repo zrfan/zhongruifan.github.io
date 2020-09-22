@@ -1,7 +1,7 @@
 ---
 layout:     post
 title:      sona:Spark on angel安装部署流程
-subtitle:   Spark on angel学习
+subtitle:   分布式机器学习系统sona
 date:       2019-12-12
 author:     fzr
 header-img:
